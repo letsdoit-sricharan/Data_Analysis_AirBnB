@@ -36,34 +36,68 @@ def prepare_features_for_modeling(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Da
     # Create a copy for modeling
     df_model = df.copy()
     
+    print(f"Input dataset shape: {df_model.shape}")
+    print(f"Input columns: {list(df_model.columns)}")
+    
     # Select features for modeling
     numeric_features = [
         'latitude', 'longitude', 'minimum_nights', 'number_of_reviews',
-        'reviews_per_month', 'calculated_host_listings_count', 'availability_365',
-        'active_days', 'reviews_per_year', 'host_productivity'
+        'reviews_per_month', 'calculated_host_listings_count', 'availability_365'
     ]
+    
+    # Add engineered features if they exist
+    engineered_features = ['active_days', 'reviews_per_year', 'host_productivity']
+    for feature in engineered_features:
+        if feature in df_model.columns:
+            numeric_features.append(feature)
     
     categorical_features = ['neighbourhood_group', 'room_type']
     
     # Prepare feature matrix
     X = pd.DataFrame()
     
-    # Add numeric features
+    # Add numeric features that exist
+    available_numeric = []
     for feature in numeric_features:
         if feature in df_model.columns:
+            # Handle missing values
+            if df_model[feature].isnull().sum() > 0:
+                print(f"Filling {df_model[feature].isnull().sum()} missing values in {feature}")
+                df_model[feature] = df_model[feature].fillna(df_model[feature].median())
+            
             X[feature] = df_model[feature]
+            available_numeric.append(feature)
+        else:
+            print(f"Warning: Feature {feature} not found in dataset")
     
     # One-hot encode categorical features
     for feature in categorical_features:
         if feature in df_model.columns:
             dummies = pd.get_dummies(df_model[feature], prefix=feature, drop_first=True)
             X = pd.concat([X, dummies], axis=1)
+            print(f"One-hot encoded {feature}: {len(dummies.columns)} new columns")
+        else:
+            print(f"Warning: Categorical feature {feature} not found in dataset")
     
     # Target variable
     y = df_model['price']
     
+    # Validate data
+    print(f"\nData validation:")
     print(f"Features prepared: {X.shape[1]} features, {len(X)} samples")
+    print(f"Target variable range: ${y.min():.2f} - ${y.max():.2f}")
+    print(f"Target variable mean: ${y.mean():.2f}")
+    print(f"Missing values in X: {X.isnull().sum().sum()}")
+    print(f"Missing values in y: {y.isnull().sum()}")
     print(f"Feature columns: {list(X.columns)}")
+    
+    # Remove any remaining missing values
+    if X.isnull().sum().sum() > 0 or y.isnull().sum() > 0:
+        print("Removing rows with missing values...")
+        mask = ~(X.isnull().any(axis=1) | y.isnull())
+        X = X[mask]
+        y = y[mask]
+        print(f"Final shape after removing missing: X={X.shape}, y={y.shape}")
     
     return X, y
 
@@ -109,13 +143,22 @@ def train_price_regression_models(X: pd.DataFrame, y: pd.Series) -> Dict[str, An
         'test_r2': r2_score(y_test, lr_test_pred)
     }
     
-    models['linear_regression'] = lr_model
-    results['linear_regression'] = lr_metrics
+    models['price_lr'] = lr_model
+    results['price_lr'] = lr_metrics
     
     print(f"Linear Regression Results:")
+    print(f"  Train R²: {lr_metrics['train_r2']:.3f}")
+    print(f"  Test R²: {lr_metrics['test_r2']:.3f}")
     print(f"  Test MAE: ${lr_metrics['test_mae']:.2f}")
     print(f"  Test RMSE: ${lr_metrics['test_rmse']:.2f}")
-    print(f"  Test R²: {lr_metrics['test_r2']:.3f}")
+    
+    # Debug negative R²
+    if lr_metrics['test_r2'] < 0:
+        print(f"  ⚠️  Negative R² detected! Model is worse than predicting the mean.")
+        print(f"  Target mean: ${y_test.mean():.2f}")
+        print(f"  Prediction mean: ${lr_test_pred.mean():.2f}")
+        print(f"  Target std: ${y_test.std():.2f}")
+        print(f"  Prediction std: ${lr_test_pred.std():.2f}")
     
     # 2. Random Forest Regressor
     print("\n=== TRAINING RANDOM FOREST ===")
@@ -143,13 +186,22 @@ def train_price_regression_models(X: pd.DataFrame, y: pd.Series) -> Dict[str, An
         'test_r2': r2_score(y_test, rf_test_pred)
     }
     
-    models['random_forest'] = rf_model
-    results['random_forest'] = rf_metrics
+    models['price_rf'] = rf_model
+    results['price_rf'] = rf_metrics
     
     print(f"Random Forest Results:")
+    print(f"  Train R²: {rf_metrics['train_r2']:.3f}")
+    print(f"  Test R²: {rf_metrics['test_r2']:.3f}")
     print(f"  Test MAE: ${rf_metrics['test_mae']:.2f}")
     print(f"  Test RMSE: ${rf_metrics['test_rmse']:.2f}")
-    print(f"  Test R²: {rf_metrics['test_r2']:.3f}")
+    
+    # Debug negative R²
+    if rf_metrics['test_r2'] < 0:
+        print(f"  ⚠️  Negative R² detected! Model is worse than predicting the mean.")
+        print(f"  Target mean: ${y_test.mean():.2f}")
+        print(f"  Prediction mean: ${rf_test_pred.mean():.2f}")
+        print(f"  Target std: ${y_test.std():.2f}")
+        print(f"  Prediction std: ${rf_test_pred.std():.2f}")
     
     # Cross-validation for Random Forest
     cv_scores = cross_val_score(rf_model, X_train, y_train, cv=5, scoring='r2')
@@ -222,8 +274,8 @@ def plot_model_performance(results: Dict, save_path: str = 'outputs/figures/mode
     
     # 1. Model comparison bar chart
     models = ['Linear Regression', 'Random Forest']
-    test_r2 = [results['linear_regression']['test_r2'], results['random_forest']['test_r2']]
-    test_mae = [results['linear_regression']['test_mae'], results['random_forest']['test_mae']]
+    test_r2 = [results['price_lr']['test_r2'], results['price_rf']['test_r2']]
+    test_mae = [results['price_lr']['test_mae'], results['price_rf']['test_mae']]
     
     x_pos = np.arange(len(models))
     bars1 = ax1.bar(x_pos, test_r2, color=['skyblue', 'lightcoral'], alpha=0.8)
@@ -265,7 +317,7 @@ def plot_model_performance(results: Dict, save_path: str = 'outputs/figures/mode
     ax3.grid(True, alpha=0.3)
     
     # Add R² score
-    lr_r2 = results['linear_regression']['test_r2']
+    lr_r2 = results['price_lr']['test_r2']
     ax3.text(0.05, 0.95, f'R² = {lr_r2:.3f}', transform=ax3.transAxes,
              bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
@@ -279,7 +331,7 @@ def plot_model_performance(results: Dict, save_path: str = 'outputs/figures/mode
     ax4.grid(True, alpha=0.3)
     
     # Add R² score
-    rf_r2 = results['random_forest']['test_r2']
+    rf_r2 = results['price_rf']['test_r2']
     ax4.text(0.05, 0.95, f'R² = {rf_r2:.3f}', transform=ax4.transAxes,
              bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
@@ -446,6 +498,82 @@ def save_models(models: Dict, save_dir: str = 'outputs/') -> None:
         print(f"Model saved: {model_path}")
 
 
+def save_all_models(regression_models: Dict, clustering_results: Dict, feature_names: list, save_dir: str = 'outputs/') -> None:
+    """
+    Save all trained models and preprocessing objects to disk as .joblib files.
+    
+    Args:
+        regression_models (Dict): Dictionary of trained regression models
+        clustering_results (Dict): Dictionary containing clustering model and scaler
+        feature_names (list): List of feature names used in regression models
+        save_dir (str): Directory to save models
+    """
+    print("\n=== SAVING ALL MODELS AS .JOBLIB FILES ===")
+    
+    # Save regression models
+    for model_name, model in regression_models.items():
+        model_path = f"{save_dir}model_{model_name}.joblib"
+        joblib.dump(model, model_path)
+        print(f"✓ Regression model saved: {model_path}")
+    
+    # Save regression feature names
+    regression_features_path = f"{save_dir}regression_features.joblib"
+    joblib.dump(feature_names, regression_features_path)
+    print(f"✓ Regression features saved: {regression_features_path}")
+    
+    # Save clustering model
+    if 'model' in clustering_results:
+        kmeans_path = f"{save_dir}model_kmeans.joblib"
+        joblib.dump(clustering_results['model'], kmeans_path)
+        print(f"✓ K-means model saved: {kmeans_path}")
+    
+    # Save clustering scaler
+    if 'scaler' in clustering_results:
+        scaler_path = f"{save_dir}scaler_kmeans.joblib"
+        joblib.dump(clustering_results['scaler'], scaler_path)
+        print(f"✓ K-means scaler saved: {scaler_path}")
+    
+    # Save cluster centers as joblib for consistency
+    if 'centers' in clustering_results:
+        centers_path = f"{save_dir}cluster_centers.joblib"
+        joblib.dump(clustering_results['centers'], centers_path)
+        print(f"✓ Cluster centers saved: {centers_path}")
+    
+    # Save clustering feature names for model inference
+    if 'features' in clustering_results:
+        clustering_features_path = f"{save_dir}clustering_features.joblib"
+        joblib.dump(clustering_results['features'], clustering_features_path)
+        print(f"✓ Clustering features saved: {clustering_features_path}")
+    
+    # Create and save model inventory
+    model_inventory = {
+        'regression_models': list(regression_models.keys()),
+        'clustering_model': 'kmeans' if 'model' in clustering_results else None,
+        'regression_features': feature_names,
+        'clustering_features': clustering_results.get('features', []),
+        'total_models': len(regression_models) + (1 if 'model' in clustering_results else 0),
+        'files_created': [
+            f"model_{name}.joblib" for name in regression_models.keys()
+        ] + [
+            'model_kmeans.joblib',
+            'scaler_kmeans.joblib', 
+            'cluster_centers.joblib',
+            'regression_features.joblib',
+            'clustering_features.joblib'
+        ]
+    }
+    
+    inventory_path = f"{save_dir}model_inventory.joblib"
+    joblib.dump(model_inventory, inventory_path)
+    print(f"✓ Model inventory saved: {inventory_path}")
+    
+    print(f"\n📊 MODEL SUMMARY:")
+    print(f"   • Regression models: {len(regression_models)}")
+    print(f"   • Clustering models: {1 if 'model' in clustering_results else 0}")
+    print(f"   • Total .joblib files: {len(model_inventory['files_created'])}")
+    print("All models successfully saved as .joblib files!")
+
+
 def run_modeling_pipeline(df: pd.DataFrame) -> Dict[str, Any]:
     """
     Run the complete modeling pipeline.
@@ -465,7 +593,7 @@ def run_modeling_pipeline(df: pd.DataFrame) -> Dict[str, Any]:
     models, regression_results = train_price_regression_models(X, y)
     
     # 3. Plot feature importance (Random Forest)
-    plot_feature_importance(models['random_forest'], list(X.columns))
+    plot_feature_importance(models['price_rf'], list(X.columns))
     
     # 4. Plot model performance
     plot_model_performance(regression_results)
@@ -476,12 +604,8 @@ def run_modeling_pipeline(df: pd.DataFrame) -> Dict[str, Any]:
     # 6. Plot clustering results
     plot_clustering_results(clustering_results)
     
-    # 7. Save models
-    save_models(models)
-    
-    # 8. Save clustering model
-    joblib.dump(clustering_results['model'], 'outputs/model_kmeans.joblib')
-    joblib.dump(clustering_results['scaler'], 'outputs/scaler_kmeans.joblib')
+    # 7. Save all models as .joblib files
+    save_all_models(models, clustering_results, list(X.columns))
     
     print("\n=== MODELING PIPELINE COMPLETE ===")
     
