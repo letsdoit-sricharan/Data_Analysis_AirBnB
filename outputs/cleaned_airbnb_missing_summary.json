@@ -1,11 +1,11 @@
 {
   "before_cleaning": {
-    "total_rows": 5000,
+    "total_rows": 48895,
     "missing_values": {
       "id": 0,
-      "name": 0,
+      "name": 16,
       "host_id": 0,
-      "host_name": 0,
+      "host_name": 21,
       "neighbourhood_group": 0,
       "neighbourhood": 0,
       "latitude": 0,
@@ -14,14 +14,14 @@
       "price": 0,
       "minimum_nights": 0,
       "number_of_reviews": 0,
-      "last_review": 148,
-      "reviews_per_month": 192,
+      "last_review": 10052,
+      "reviews_per_month": 10052,
       "calculated_host_listings_count": 0,
       "availability_365": 0
     }
   },
   "after_cleaning": {
-    "total_rows": 4826,
+    "total_rows": 48895,
     "missing_values": {
       "id": 0,
       "name": 0,
@@ -35,7 +35,7 @@
       "price": 0,
       "minimum_nights": 0,
       "number_of_reviews": 0,
-      "last_review": 143,
+      "last_review": 10052,
       "reviews_per_month": 0,
       "calculated_host_listings_count": 0,
       "availability_365": 0,
@@ -47,7 +47,7 @@
     }
   },
   "cleaning_summary": {
-    "rows_removed": 174,
-    "removal_percentage": 3.4799999999999995
+    "rows_removed": 0,
+    "removal_percentage": 0.0
   }
 }

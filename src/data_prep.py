@@ -275,7 +275,7 @@ def run_data_cleaning_pipeline(input_path: str, output_path: str) -> pd.DataFram
     df = basic_clean(df)
     df = handle_missing(df)
     df = remove_duplicates(df)
-    df = filter_price_outliers(df, method='IQR', factor=1.5)
+    df = filter_price_outliers(df, method='none')  # Keep all listings, only remove zero prices
     df = feature_engineer(df)
     
     # Save cleaned data

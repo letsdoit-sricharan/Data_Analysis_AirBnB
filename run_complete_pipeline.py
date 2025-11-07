@@ -33,7 +33,8 @@ def create_output_directories():
 
 def check_input_data():
     """Check if input data exists, create sample if not."""
-    input_files = ['AB_NYC_2019.csv', 'data/AB_NYC_2019.csv']
+    input_files = ['AB_NYC_2019.csv', 'data/AB_NYC_2019.csv', 'notebooks/AB_NYC_2019.csv']
+
     
     for file_path in input_files:
         if os.path.exists(file_path):

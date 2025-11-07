@@ -2,37 +2,37 @@
 
 ## Dataset Overview
 - **Original Data**: Input CSV file processed
-- **Final Clean Dataset**: 4,826 listings, 21 features
+- **Final Clean Dataset**: 48,895 listings, 21 features
 - **Data Quality**: Validated and cleaned
 - **Missing Values**: Handled appropriately
 
 ## Key Statistics
-- **Average Price**: $136.72
-- **Median Price**: $122.00
-- **Price Range**: $14 - $338
+- **Average Price**: $152.72
+- **Median Price**: $106.00
+- **Price Range**: $0 - $10000
 - **Total Boroughs**: 5
-- **Total Neighborhoods**: 199
-- **Unique Hosts**: 985
+- **Total Neighborhoods**: 221
+- **Unique Hosts**: 37,457
 
 ## Borough Distribution
 neighbourhood_group
-Manhattan        1619
-Brooklyn         1210
-Queens            999
-Bronx             742
-Staten Island     256
+Manhattan        21661
+Brooklyn         20104
+Queens            5666
+Bronx             1091
+Staten Island      373
 
 ## Room Type Distribution  
 room_type
-Entire home/apt    2542
-Private room       2158
-Shared room         126
+Entire home/apt    25409
+Private room       22326
+Shared room         1160
 
 ## Model Performance
-- **Linear Regression R²**: 0.442
-- **Random Forest R²**: 0.404
+- **Linear Regression R²**: 0.121
+- **Random Forest R²**: 0.103
 - **Best Model**: Random Forest
-- **Prediction Accuracy**: ±$41 MAE
+- **Prediction Accuracy**: ±$63 MAE
 
 ## Files Generated
 ### Data Files
@@ -64,4 +64,4 @@ All pipeline components executed successfully. The Streamlit dashboard can now b
 streamlit run app.py
 ```
 
-Generated on: 2025-11-07 01:52:32
+Generated on: 2025-11-07 11:50:24

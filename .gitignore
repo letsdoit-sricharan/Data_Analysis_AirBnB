@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Data Science specific
-*.csv
+
 *.xlsx
 *.xls
 *.json
@@ -139,15 +139,15 @@ dmypy.json
 *.hdf5
 
 # Model files
-*.model
-*.joblib
+
+
 *.sav
 
 # Output files
 
 results/
 plots/
-figures/
+
 
 # IDE specific
 .vscode/
@@ -197,7 +197,7 @@ ENV/
 # *.xlsx
 
 # Model outputs
-models/
+
 checkpoints/
 
 # Streamlit
