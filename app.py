@@ -218,8 +218,21 @@ def geographic_tab(filtered_df):
     
     # Map visualization
     if len(filtered_df) > 0:
-        # Sample data for performance if too large
-        map_df = filtered_df.sample(n=min(2000, len(filtered_df)), random_state=42)
+        # Add slider to control number of listings shown on map
+        max_listings_on_map = st.slider(
+            "Number of listings to show on map",
+            min_value=1000,
+            max_value=min(50000, len(filtered_df)),
+            value=min(10000, len(filtered_df)),
+            step=1000,
+            help="Showing too many listings may slow down the map. Adjust for performance."
+        )
+        
+        # Sample data for performance if needed
+        if len(filtered_df) > max_listings_on_map:
+            map_df = filtered_df.sample(n=max_listings_on_map, random_state=42)
+        else:
+            map_df = filtered_df
         
         fig_map = px.scatter_mapbox(
             map_df,
@@ -231,7 +244,7 @@ def geographic_tab(filtered_df):
             color_continuous_scale="Viridis",
             size_max=15,
             zoom=10,
-            title=f"Airbnb Listings Map (showing {len(map_df):,} listings)"
+            title=f"Airbnb Listings Map (showing {len(map_df):,} of {len(filtered_df):,} listings)"
         )
         fig_map.update_layout(
             mapbox_style="open-street-map",
